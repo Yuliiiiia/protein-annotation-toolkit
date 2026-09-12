@@ -24,7 +24,7 @@ composition (helix/sheet/coil), and are there bound ligands or cofactors?
   DSSP isn't installed at all)
 - **Domain annotation** — maps each chain to UniProt (via EBI's SIFTS/PDBe
   mapping) and reports Pfam domain hits (via EBI InterPro) in PDB residue
-  numbering — e.g. "PF00069 — Protein kinase domain, residues 15–270"
+  numbering
 - **Disulfide bond detection** — finds cysteine pairs within bonding distance
 - **Radius of gyration** — a simple measure of structural compactness
 - **Markdown or JSON report output**
