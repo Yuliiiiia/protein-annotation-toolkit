@@ -148,17 +148,55 @@ def run_dssp(structure, file_path: str) -> dict:
     """
     Run DSSP (if the mkdssp binary is available) to get per-residue secondary
     structure, then summarize into overall percentages.
-    Returns {} if DSSP is not installed — this is a soft dependency.
+
+    Newer mkdssp builds (4.x, e.g. the conda-forge package) parse mmCIF
+    files using libcifpp, which expects local chemical-component-dictionary
+    data that often isn't configured out of the box. That makes DSSP fail
+    on .cif input with a "mmcif_pdbx ... Is a directory" style error even
+    though DSSP itself works fine. Classic PDB-format input avoids that
+    dictionary lookup entirely, so if the first attempt fails and the input
+    was mmCIF, we convert the already-parsed structure to a temporary
+    legacy .pdb file and retry once before giving up.
+
+    Returns a dict with "available": False and a "reason" if DSSP is not
+    installed or both attempts fail — this is a soft dependency throughout.
     """
     if not _HAS_DSSP:
         return {"available": False, "reason": "Bio.PDB.DSSP not importable"}
 
-    try:
-        model = structure[0]
-        dssp = DSSP(model, str(file_path))
-    except Exception as exc:  # mkdssp binary missing, or parse failure
-        return {"available": False, "reason": str(exc)}
+    model = structure[0]
+    last_error = None
 
+    try:
+        dssp = DSSP(model, str(file_path))
+        return _summarize_dssp(dssp)
+    except Exception as exc:
+        last_error = exc
+
+    if Path(file_path).suffix.lower() in (".cif", ".mmcif"):
+        tmp_path = None
+        try:
+            import tempfile
+            from Bio.PDB import PDBIO
+
+            with tempfile.NamedTemporaryFile(suffix=".pdb", delete=False) as tmp:
+                tmp_path = tmp.name
+            io = PDBIO()
+            io.set_structure(structure)
+            io.save(tmp_path)
+
+            dssp = DSSP(model, tmp_path)
+            return _summarize_dssp(dssp)
+        except Exception as exc:
+            last_error = exc
+        finally:
+            if tmp_path:
+                Path(tmp_path).unlink(missing_ok=True)
+
+    return {"available": False, "reason": f"DSSP failed on both mmCIF and PDB input: {last_error}"}
+
+
+def _summarize_dssp(dssp) -> dict:
     ss_counts = {}
     for key in dssp.keys():
         ss = dssp[key][2]

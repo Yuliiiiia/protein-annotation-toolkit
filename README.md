@@ -19,7 +19,9 @@ composition (helix/sheet/coil), and are there bound ligands or cofactors?
 - **Physicochemical properties per chain** — molecular weight, isoelectric
   point, GRAVY hydrophobicity score, aromaticity, instability index
 - **Secondary structure** — helix/sheet/coil percentages via DSSP (optional
-  dependency; the pipeline degrades gracefully if it isn't installed)
+  dependency; automatically falls back from mmCIF to a converted legacy PDB
+  file if DSSP's mmCIF dictionary lookup fails, and degrades gracefully if
+  DSSP isn't installed at all)
 - **Domain annotation** — maps each chain to UniProt (via EBI's SIFTS/PDBe
   mapping) and reports Pfam domain hits (via EBI InterPro) in PDB residue
   numbering — e.g. "PF00069 — Protein kinase domain, residues 15–270"
@@ -43,8 +45,13 @@ Secondary structure assignment needs the `mkdssp` binary (optional):
 sudo apt install dssp
 
 # Conda
-conda install -c salilab dssp
+conda install -c conda-forge dssp
 ```
+
+> Setting this up on WSL (or hitting `sudo`/`pip`/DSSP install issues in
+> general)? See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) — it walks through
+> every real problem hit setting this project up from scratch, and how each
+> was fixed.
 
 ## Usage
 
@@ -138,7 +145,10 @@ examples/
 └── view_structure.ipynb   # interactive 3D viewer
 tests/
 ├── make_synthetic_pdb.py  # builds a small offline test fixture
-└── test_analyze.py        # unit tests (no network required)
+├── test_analyze.py        # unit tests (no network required)
+├── test_domains.py        # domain annotation tests (mocked API responses)
+└── test_dssp_fallback.py  # DSSP mmCIF->PDB fallback regression test
+TROUBLESHOOTING.md          # real setup issues hit and how they were fixed
 ```
 
 ## Running tests
@@ -148,9 +158,11 @@ pytest tests/ -v
 ```
 
 Tests run entirely offline against a small synthetic structure generated
-by `tests/make_synthetic_pdb.py`, and domain-annotation tests use mocked
-API responses (`unittest.mock`) — so no network access or real PDB
-download is required for CI.
+by `tests/make_synthetic_pdb.py`, domain-annotation tests use mocked API
+responses (`unittest.mock`), and the DSSP mmCIF→PDB fallback path
+(`tests/test_dssp_fallback.py`) is verified with a mocked DSSP failure —
+so no network access, real PDB download, or even a working DSSP install is
+required for CI.
 
 ## Possible extensions
 
