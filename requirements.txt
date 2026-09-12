@@ -1,0 +1,12 @@
+biopython>=1.83
+requests>=2.28
+pytest>=7.0
+
+# Optional, needed for the example notebook (interactive 3D viewer)
+py3Dmol>=2.0
+jupyter>=1.0
+
+# Optional, needed for secondary structure assignment (helix/sheet/coil)
+# The mkdssp binary must also be installed separately, e.g.:
+#   Ubuntu/Debian: sudo apt install dssp
+#   Conda:         conda install -c salilab dssp
