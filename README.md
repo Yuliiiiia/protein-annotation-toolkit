@@ -1,5 +1,9 @@
 # Protein Structure Viewer & Annotator
 
+![SARS-CoV-2 spike protein rendered by the toolkit's interactive viewer](https://github.com/user-attachments/assets/67c2a257-9f99-4b7a-8c26-3d92ec99cf0e)
+
+*Interactive 3D view of the SARS-CoV-2 spike protein (PDB: 6VXX), rendered via the included py3Dmol notebook.*
+
 A small toolkit that downloads a protein structure from the RCSB Protein
 Data Bank, computes physicochemical and structural properties, and
 generates a readable annotation report — plus an interactive 3D viewer
