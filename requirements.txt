@@ -1,12 +1,11 @@
 biopython>=1.83
 requests>=2.28
 pytest>=7.0
+numpy>=1.24
+# pydssp also pulls in torch as a dependency (even though this project only
+# uses its numpy backend) -- expect a few hundred MB to download/install.
+pydssp>=0.9.0
 
 # Optional, needed for the example notebook (interactive 3D viewer)
 py3Dmol>=2.0
 jupyter>=1.0
-
-# Optional, needed for secondary structure assignment (helix/sheet/coil)
-# The mkdssp binary must also be installed separately, e.g.:
-#   Ubuntu/Debian: sudo apt install dssp
-#   Conda:         conda install -c salilab dssp

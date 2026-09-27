@@ -46,13 +46,12 @@ def render_markdown(results: dict) -> str:
             f"- Helix: {ss['helix_percent']}%",
             f"- Sheet: {ss['sheet_percent']}%",
             f"- Coil/loop: {ss['coil_percent']}%",
-            f"- (based on {ss['residues_assigned']} DSSP-assigned residues)",
+            f"- (based on {ss['residues_assigned']} residues)",
         ]
     else:
         lines.append(
-            f"- Not available ({ss.get('reason', 'DSSP not installed')}). "
-            "Install `mkdssp` (e.g. `apt install dssp` or `conda install -c salilab dssp`) "
-            "to enable helix/sheet/coil assignment."
+            f"- Not available ({ss.get('reason', 'pydssp not installed')}). "
+            "Install with `pip install pydssp` to enable helix/sheet/coil assignment."
         )
     lines.append("")
 

@@ -5,7 +5,7 @@ Given a PDB/mmCIF file, this module extracts:
   - chains, residue counts, hetero-atoms (ligands/waters)
   - amino acid sequence per chain
   - molecular weight, isoelectric point, GRAVY (hydrophobicity)
-  - secondary structure (via DSSP, if the `mkdssp` binary is installed)
+  - secondary structure (helix/sheet/coil), via the pydssp package
   - candidate disulfide bonds (close SG-SG cysteine pairs)
   - radius of gyration (a rough measure of compactness)
 """
@@ -17,10 +17,11 @@ from Bio.PDB import MMCIFParser, PDBParser, PPBuilder, is_aa
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 
 try:
-    from Bio.PDB import DSSP
-    _HAS_DSSP = True
+    import numpy as np
+    import pydssp
+    _HAS_PYDSSP = True
 except ImportError:
-    _HAS_DSSP = False
+    _HAS_PYDSSP = False
 
 
 def _get_parser(file_path: Path):
@@ -146,66 +147,69 @@ def compute_radius_of_gyration(structure) -> float:
 
 def run_dssp(structure, file_path: str) -> dict:
     """
-    Run DSSP (if the mkdssp binary is available) to get per-residue secondary
-    structure, then summarize into overall percentages.
+    Assign secondary structure (helix / sheet / coil) using pydssp — a
+    pure NumPy re-implementation of the DSSP hydrogen-bond algorithm
+    (github.com/ShintaroMinami/PyDSSP, also used by MDAnalysis as a DSSP
+    backend). This avoids depending on the external `mkdssp` binary
+    entirely: that binary's conda-forge packaging has a confirmed,
+    long-standing bug (github.com/conda-forge/dssp-feedstock/pull/4) where
+    it fails with "Is a directory" trying to load its own bundled
+    chemical-component dictionary, even when the dictionary path is passed
+    explicitly — so relying on it isn't durable across environments.
 
-    Newer mkdssp builds (4.x, e.g. the conda-forge package) parse mmCIF
-    files using libcifpp, which expects local chemical-component-dictionary
-    data that often isn't configured out of the box. That makes DSSP fail
-    on .cif input with a "mmcif_pdbx ... Is a directory" style error even
-    though DSSP itself works fine. Classic PDB-format input avoids that
-    dictionary lookup entirely, so if the first attempt fails and the input
-    was mmCIF, we convert the already-parsed structure to a temporary
-    legacy .pdb file and retry once before giving up.
+    file_path is accepted for interface compatibility but unused; pydssp
+    works directly off the already-parsed Biopython structure.
 
-    Returns a dict with "available": False and a "reason" if DSSP is not
-    installed or both attempts fail — this is a soft dependency throughout.
+    Runs per chain (rather than across the whole model at once) so that a
+    chain break doesn't corrupt hydrogen-bond geometry for other chains,
+    and so a single malformed chain doesn't take down the whole result.
+
+    Returns a dict with "available": False and a "reason" if pydssp isn't
+    installed or no chain has a usable, complete backbone — this remains a
+    soft dependency throughout, same as before.
     """
-    if not _HAS_DSSP:
-        return {"available": False, "reason": "Bio.PDB.DSSP not importable"}
+    if not _HAS_PYDSSP:
+        return {"available": False, "reason": "pydssp not importable (pip install pydssp)"}
 
-    model = structure[0]
-    last_error = None
-
-    try:
-        dssp = DSSP(model, str(file_path))
-        return _summarize_dssp(dssp)
-    except Exception as exc:
-        last_error = exc
-
-    if Path(file_path).suffix.lower() in (".cif", ".mmcif"):
-        tmp_path = None
-        try:
-            import tempfile
-            from Bio.PDB import PDBIO
-
-            with tempfile.NamedTemporaryFile(suffix=".pdb", delete=False) as tmp:
-                tmp_path = tmp.name
-            io = PDBIO()
-            io.set_structure(structure)
-            io.save(tmp_path)
-
-            dssp = DSSP(model, tmp_path)
-            return _summarize_dssp(dssp)
-        except Exception as exc:
-            last_error = exc
-        finally:
-            if tmp_path:
-                Path(tmp_path).unlink(missing_ok=True)
-
-    return {"available": False, "reason": f"DSSP failed on both mmCIF and PDB input: {last_error}"}
-
-
-def _summarize_dssp(dssp) -> dict:
     ss_counts = {}
-    for key in dssp.keys():
-        ss = dssp[key][2]
-        ss_counts[ss] = ss_counts.get(ss, 0) + 1
+    chains_skipped = []
 
-    total = sum(ss_counts.values()) or 1
-    # DSSP codes: H/G/I = helix, E/B = sheet/strand, rest = coil/turn/loop
-    helix = sum(ss_counts.get(c, 0) for c in "HGI")
-    sheet = sum(ss_counts.get(c, 0) for c in "EB")
+    for chain in structure[0]:
+        coords = []
+        for residue in chain:
+            if residue.id[0] != " " or not is_aa(residue, standard=True):
+                continue
+            if all(atom in residue for atom in ("N", "CA", "C", "O")):
+                coords.append([
+                    residue["N"].coord, residue["CA"].coord,
+                    residue["C"].coord, residue["O"].coord,
+                ])
+
+        if len(coords) < 4:  # pydssp's hydrogen-bond window needs a minimum span
+            if coords:
+                chains_skipped.append(chain.id)
+            continue
+
+        try:
+            coord_array = np.asarray(coords, dtype=np.float32)
+            codes = pydssp.assign(coord_array, out_type="c3")
+        except Exception:
+            chains_skipped.append(chain.id)
+            continue
+
+        for code in codes:
+            ss_counts[code] = ss_counts.get(code, 0) + 1
+
+    total = sum(ss_counts.values())
+    if total == 0:
+        reason = "No chain had a complete, sufficiently long backbone (N/CA/C/O) for assignment"
+        if chains_skipped:
+            reason += f"; skipped: {', '.join(chains_skipped)}"
+        return {"available": False, "reason": reason}
+
+    # pydssp's "c3" output is already the coarse alphabet: H = helix, E = strand, - = coil
+    helix = ss_counts.get("H", 0)
+    sheet = ss_counts.get("E", 0)
     coil = total - helix - sheet
 
     return {
@@ -214,7 +218,7 @@ def _summarize_dssp(dssp) -> dict:
         "helix_percent": round(100 * helix / total, 1),
         "sheet_percent": round(100 * sheet / total, 1),
         "coil_percent": round(100 * coil / total, 1),
-        "raw_counts": ss_counts,
+        "raw_counts": {k: int(v) for k, v in ss_counts.items()},
     }
 
 

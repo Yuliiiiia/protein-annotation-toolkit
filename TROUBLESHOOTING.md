@@ -64,27 +64,48 @@ conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 ## `mkdssp: error while loading shared libraries: libboost_thread.so.1.73.0`
 
 The `salilab` conda channel's DSSP build (3.0.0) links against an old Boost
-version that isn't present. Use the conda-forge build instead, which is
-newer and more actively maintained:
-```bash
-conda remove dssp -y
-conda install -c conda-forge dssp -y
-```
+version that isn't present. Switching to conda-forge's build (4.4.11) gets
+past this specific error — but keep reading, because it runs into a worse,
+unfixable one next.
 
-## DSSP fails on `.cif` files: `Error while loading dictionary mmcif_pdbx ... Is a directory`
+## DSSP fails on `.cif` files: `Error while loading dictionary mmcif_pdbx ... Is a directory`, and it's not fixable
 
-Even after installing conda-forge's DSSP (4.4.11), running it against an
-mmCIF file can fail. Newer `mkdssp` builds parse mmCIF via `libcifpp`,
-which expects local chemical-component-dictionary data that usually isn't
-configured by default — DSSP itself works fine, it's specifically the
-mmCIF dictionary lookup that's broken.
+This one took a lot of digging, so the full story is worth recording.
 
-**This is now handled automatically by the toolkit** (`analyze.py`,
-`run_dssp()`): if DSSP fails on the mmCIF input, the code converts the
-already-parsed structure to a temporary legacy `.pdb` file (which doesn't
-trigger the dictionary lookup) and retries once before giving up. No
-action needed on your end — if DSSP is installed and working at all,
-you should get real helix/sheet/coil percentages.
+Every conda-forge build of `mkdssp` (4.x) that was tried — including
+setting the `LIBCIFPP_DATA_DIR` environment variable explicitly to the
+directory containing the dictionary file (confirmed present and readable
+on disk), and even passing the exact file path directly via
+`--mmcif-dictionary` — still failed with the same
+`basic_filebuf::underflow error reading the file: Is a directory` error.
+
+Tracing this back to [conda-forge/dssp-feedstock#4](https://github.com/conda-forge/dssp-feedstock/pull/4)
+confirmed it's not a local misconfiguration: it's a genuine, unresolved bug
+in how conda's binary-relocation mechanism interacts with `libcifpp` (the
+C++ library `mkdssp` uses to load its dictionary). Even the library's own
+maintainer, debugging the exact same error in that thread, couldn't fix
+it and closed the PR unresolved:
+
+> "Seems like the hack conda uses to make packages relocatable is not
+> working with libcifpp. Until that is fixed... this feedstock is not
+> going to work."
+
+Installing DSSP via `apt` (Debian/Ubuntu's system package, which bundles
+the `libcifpp-data` package correctly) does work — confirmed by testing it
+directly. But that requires `sudo`, which isn't always available (see the
+sudo section above), and doesn't help on Windows/WSL setups without a
+working system package manager for it.
+
+**The actual fix: this project no longer uses `mkdssp` at all.**
+`analyze.py`'s `run_dssp()` now uses [`pydssp`](https://github.com/ShintaroMinami/PyDSSP)
+— a pure NumPy re-implementation of the DSSP hydrogen-bond algorithm,
+installed via plain `pip install pydssp`. No external binary, no compiled
+dictionary files, no relocation issues. It's also the same backend
+`MDAnalysis` uses as a DSSP alternative, so it's not an obscure choice.
+The one tradeoff: `pydssp` pulls in `torch` as a dependency (even though
+only its NumPy backend is used here), so the install is a few hundred MB
+larger than a typical lightweight package — worth knowing in advance if
+disk space is tight.
 
 ## `git commit` fails: `Please tell me who you are` / `empty ident name`
 

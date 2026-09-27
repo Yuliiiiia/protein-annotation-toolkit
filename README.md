@@ -18,10 +18,9 @@ composition (helix/sheet/coil), and are there bound ligands or cofactors?
 - **Composition summary** — residue counts, waters, hetero groups/ligands
 - **Physicochemical properties per chain** — molecular weight, isoelectric
   point, GRAVY hydrophobicity score, aromaticity, instability index
-- **Secondary structure** — helix/sheet/coil percentages via DSSP (optional
-  dependency; automatically falls back from mmCIF to a converted legacy PDB
-  file if DSSP's mmCIF dictionary lookup fails, and degrades gracefully if
-  DSSP isn't installed at all)
+- **Secondary structure**: helix/sheet/coil percentages via `pydssp` — a pure
+  NumPy DSSP re-implementation with no external binary, so no separate
+  system install and no compiled-dictionary headaches
 - **Domain annotation** — maps each chain to UniProt (via EBI's SIFTS/PDBe
   mapping) and reports Pfam domain hits (via EBI InterPro) in PDB residue
   numbering — e.g. "PF00069 — Protein kinase domain, residues 15–270"
@@ -38,20 +37,16 @@ cd protein-toolkit
 pip install -r requirements.txt
 ```
 
-Secondary structure assignment needs the `mkdssp` binary (optional):
+Secondary structure assignment (`pydssp`) is included in `requirements.txt`
+— no separate system package needed. Earlier versions of this project used
+the external `mkdssp` binary, which turned out to have a confirmed,
+unresolved packaging bug in its conda-forge distribution (see
+[TROUBLESHOOTING.md](TROUBLESHOOTING.md) for the full story of chasing that
+down) — `pydssp` sidesteps it entirely.
 
-```bash
-# Ubuntu/Debian
-sudo apt install dssp
-
-# Conda
-conda install -c conda-forge dssp
-```
-
-> Setting this up on WSL (or hitting `sudo`/`pip`/DSSP install issues in
-> general)? See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) — it walks through
-> every real problem hit setting this project up from scratch, and how each
-> was fixed.
+> Setting this up on WSL (or ran into `sudo`/`pip` issues in general)? See
+> [TROUBLESHOOTING.md](TROUBLESHOOTING.md) — it walks through every real
+> problem hit setting this project up from scratch, and how each was fixed.
 
 ## Usage
 
@@ -144,11 +139,12 @@ protein_toolkit/
 examples/
 └── view_structure.ipynb   # interactive 3D viewer
 tests/
-├── make_synthetic_pdb.py  # builds a small offline test fixture
-├── test_analyze.py        # unit tests (no network required)
-├── test_domains.py        # domain annotation tests (mocked API responses)
-└── test_dssp_fallback.py  # DSSP mmCIF->PDB fallback regression test
-TROUBLESHOOTING.md          # real setup issues hit and how they were fixed
+├── make_synthetic_pdb.py     # builds a small offline test fixture
+├── 1a8o_fixture.cif          # small real structure (bundled, no network needed)
+├── test_analyze.py           # unit tests (no network required)
+├── test_domains.py           # domain annotation tests (mocked API responses)
+└── test_secondary_structure.py  # pydssp tests, incl. a real-data regression check
+TROUBLESHOOTING.md             # real setup issues hit and how they were fixed
 ```
 
 ## Running tests
@@ -157,12 +153,12 @@ TROUBLESHOOTING.md          # real setup issues hit and how they were fixed
 pytest tests/ -v
 ```
 
-Tests run entirely offline against a small synthetic structure generated
-by `tests/make_synthetic_pdb.py`, domain-annotation tests use mocked API
-responses (`unittest.mock`), and the DSSP mmCIF→PDB fallback path
-(`tests/test_dssp_fallback.py`) is verified with a mocked DSSP failure —
-so no network access, real PDB download, or even a working DSSP install is
-required for CI.
+Tests run entirely offline: against a small synthetic structure generated
+by `tests/make_synthetic_pdb.py`, a small real structure bundled as
+`tests/1a8o_fixture.cif` (so the secondary-structure regression test checks
+against genuine coordinates, not synthetic ones), and mocked API responses
+(`unittest.mock`) for the domain-annotation tests — no network access or
+real PDB download required for CI.
 
 ## Possible extensions
 
