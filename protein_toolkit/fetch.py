@@ -10,16 +10,13 @@ def fetch_structure(pdb_id: str, out_dir: str = "data") -> Path:
     """
     Download a structure file (mmCIF format) for the given PDB ID.
 
-    Parameters
-    ----------
-    pdb_id : str
-        4-character PDB accession code, e.g. "1CRN".
-    out_dir : str
-        Directory to save the downloaded file into.
-
-    Returns
-    -------
-    Path to the downloaded structure file.
+    Raises FileNotFoundError with a clear message if the ID doesn't exist
+    or the download otherwise fails. Biopython's PDBList doesn't raise on
+    a 404 itself -- it just prints a message and returns None -- so
+    without this check, callers further down the pipeline (like
+    batch.analyze_one's error handling) would get a confusing, unrelated
+    TypeError from trying to treat None as a file path instead of a clean,
+    catchable error about the real problem.
     """
     pdb_id = pdb_id.strip().upper()
     Path(out_dir).mkdir(parents=True, exist_ok=True)
@@ -28,6 +25,11 @@ def fetch_structure(pdb_id: str, out_dir: str = "data") -> Path:
     file_path = pdbl.retrieve_pdb_file(
         pdb_id, pdir=out_dir, file_format="mmCif"
     )
+    if not file_path or not Path(file_path).exists():
+        raise FileNotFoundError(
+            f"Could not download structure '{pdb_id}' from RCSB PDB "
+            "-- check that the PDB ID is valid and currently in the archive"
+        )
     return Path(file_path)
 
 
