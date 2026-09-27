@@ -1,5 +1,9 @@
 # Protein Structure Viewer & Annotator
 
+![SARS-CoV-2 spike protein rendered by the toolkit's interactive viewer](https://github.com/user-attachments/assets/67c2a257-9f99-4b7a-8c26-3d92ec99cf0e)
+
+*Interactive 3D view of the SARS-CoV-2 spike protein (PDB: 6VXX), rendered via the included py3Dmol notebook.*
+
 A small toolkit that downloads a protein structure from the RCSB Protein
 Data Bank, computes physicochemical and structural properties, and
 generates a readable annotation report — plus an interactive 3D viewer
@@ -23,7 +27,7 @@ composition (helix/sheet/coil), and are there bound ligands or cofactors?
   system install and no compiled-dictionary headaches
 - **Domain annotation** — maps each chain to UniProt (via EBI's SIFTS/PDBe
   mapping) and reports Pfam domain hits (via EBI InterPro) in PDB residue
-  numbering — e.g. "PF00069 — Protein kinase domain, residues 15–270"
+  numbering
 - **Disulfide bond detection** — finds cysteine pairs within bonding distance
 - **Radius of gyration** — a simple measure of structural compactness
 - **Markdown or JSON report output**
