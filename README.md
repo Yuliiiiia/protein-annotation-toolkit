@@ -36,6 +36,7 @@ composition (helix/sheet/coil), and are there bound ligands or cofactors?
 - **Markdown or JSON report output**
 - **Interactive 3D viewer** via a Jupyter notebook (py3Dmol)
 
+
 ## Installation
 
 ```bash
@@ -150,6 +151,18 @@ Real output from that command:
 
 A bad or unavailable PDB ID doesn't stop the batch — that row just records
 the error while every other structure still gets analyzed and reported.
+
+## Structure comparison
+
+```bash
+python -m protein_toolkit.compare 1LYZ 2LZT
+python -m protein_toolkit.compare 1LYZ 2LZT --chain1 A --chain2 A
+```
+
+Residues are matched by sequence alignment rather than residue number, so
+two independently deposited entries with different numbering still compare
+correctly.
+
 ## Project structure
 
 ```
