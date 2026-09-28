@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}{{ pdb_id }} — Protein Structure Viewer{% endblock %}
+{% block content %}
+
+<div class="card">
+  <h2>3D structure — {{ pdb_id }}</h2>
+  <div id="viewer"></div>
+</div>
+
+<div class="card">
+  <h2>Composition</h2>
+  <span class="pill">{{ results.num_chains }} chain{{ 's' if results.num_chains != 1 }}</span>
+  <span class="pill">{{ results.composition.amino_acid_residues }} residues</span>
+  <span class="pill">{{ results.composition.water_molecules }} waters</span>
+  <span class="pill">{{ results.composition.hetero_groups }} hetero groups</span>
+  <span class="pill">Rg: {{ results.radius_of_gyration_angstrom }} Å</span>
+</div>
+
+<div class="card">
+  <h2>Per-chain properties</h2>
+  <table>
+    <tr>
+      <th>Chain</th><th>Length</th><th>MW (Da)</th><th>pI</th>
+      <th>GRAVY</th><th>Aromaticity</th><th>Instability</th>
+    </tr>
+    {% for chain_id, props in results.chain_properties.items() if props %}
+    <tr>
+      <td><code>{{ chain_id }}</code></td>
+      <td>{{ props.length }}</td>
+      <td>{{ props.molecular_weight_da }}</td>
+      <td>{{ props.isoelectric_point }}</td>
+      <td>{{ props.gravy_hydrophobicity }}</td>
+      <td>{{ props.aromaticity }}</td>
+      <td>{{ props.instability_index }}
+        {% if props.instability_index > 40 %}(unstable){% else %}(stable){% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="card">
+  <h2>Secondary structure</h2>
+  {% set ss = results.secondary_structure %}
+  {% if ss.available %}
+    <span class="pill">Helix {{ ss.helix_percent }}%</span>
+    <span class="pill">Sheet {{ ss.sheet_percent }}%</span>
+    <span class="pill">Coil {{ ss.coil_percent }}%</span>
+    <span class="pill">{{ ss.residues_assigned }} residues assigned</span>
+  {% else %}
+    <p style="color: var(--text-dim);">Not available ({{ ss.reason }})</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Disulfide bond candidates</h2>
+  {% if results.disulfide_candidates %}
+    <table>
+      <tr><th>Residue 1</th><th>Residue 2</th><th>Distance</th></tr>
+      {% for b in results.disulfide_candidates %}
+      <tr><td><code>{{ b.residue_1 }}</code></td><td><code>{{ b.residue_2 }}</code></td><td>{{ b.distance_angstrom }} Å</td></tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <p style="color: var(--text-dim);">None found within 2.5 Å</p>
+  {% endif %}
+</div>
+
+{% if include_domains %}
+<div class="card">
+  <h2>Pfam domains</h2>
+  {% set dom = results.domains %}
+  {% if dom.available and dom.chains %}
+    {% for chain_id, hits in dom.chains.items() %}
+      <p><strong>Chain {{ chain_id }}</strong></p>
+      <table>
+        <tr><th>Pfam ID</th><th>Name</th><th>Residues</th><th>UniProt</th></tr>
+        {% for d in hits %}
+        <tr>
+          <td><code>{{ d.pfam_id }}</code></td>
+          <td>{{ d.name }}</td>
+          <td>{{ d.pdb_start }}–{{ d.pdb_end }}</td>
+          <td><code>{{ d.uniprot_accession }}</code></td>
+        </tr>
+        {% endfor %}
+      </table>
+    {% endfor %}
+  {% elif dom.available %}
+    <p style="color: var(--text-dim);">No Pfam domains found for this entry</p>
+  {% else %}
+    <p style="color: var(--text-dim);">Not available ({{ dom.reason }})</p>
+  {% endif %}
+</div>
+{% endif %}
+
+<p><a href="{{ url_for('index') }}">← Look up another structure</a></p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.4.2/3Dmol-min.js"></script>
+<script>
+  const structureData = {{ structure_json | safe }};
+  const viewer = $3Dmol.createViewer("viewer", { backgroundColor: "0x05070c" });
+  viewer.addModel(structureData, "cif");
+  viewer.setStyle({}, { cartoon: { color: "spectrum" } });
+  viewer.addStyle({ hetflag: true }, { stick: { colorscheme: "greenCarbon" } });
+  viewer.zoomTo();
+  viewer.render();
+</script>
+{% endblock %}

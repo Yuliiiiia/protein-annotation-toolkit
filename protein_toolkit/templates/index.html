@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h2>Look up a structure</h2>
+  <form action="{{ url_for('structure_lookup') }}" method="post" style="display:flex; flex-direction:column; gap:1rem;">
+    <div>
+      <label for="pdb_id">PDB ID</label>
+      <input type="text" id="pdb_id" name="pdb_id" placeholder="e.g. 1CRN, 1UBQ, 6VXX" autofocus required>
+    </div>
+    <div>
+      <label style="display:flex; align-items:center; gap:0.5rem;">
+        <input type="checkbox" name="domains" style="width:auto;">
+        Look up Pfam domains too (via UniProt/InterPro, adds a few seconds)
+      </label>
+    </div>
+    <div>
+      <button type="submit">Analyze</button>
+    </div>
+  </form>
+</div>
+<div class="card" style="color: var(--text-dim); font-size: 0.9rem;">
+  Try: <code>1CRN</code> (small, fast), <code>1UBQ</code> (ubiquitin),
+  <code>6VXX</code> (SARS-CoV-2 spike, large), <code>2ABL</code> (a kinase with a real Pfam domain)
+</div>
+{% endblock %}
