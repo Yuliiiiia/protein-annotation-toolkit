@@ -28,10 +28,14 @@ composition (helix/sheet/coil), and are there bound ligands or cofactors?
 - **Domain annotation** — maps each chain to UniProt (via EBI's SIFTS/PDBe
   mapping) and reports Pfam domain hits (via EBI InterPro) in PDB residue
   numbering
+  - **Batch mode** — analyze several structures in one run and get a
+  side-by-side comparison table (Markdown or CSV); one failing ID doesn't
+  abort the rest of the batch
 - **Disulfide bond detection** — finds cysteine pairs within bonding distance
 - **Radius of gyration** — a simple measure of structural compactness
 - **Markdown or JSON report output**
 - **Interactive 3D viewer** via a Jupyter notebook (py3Dmol)
+
 
 ## Installation
 
@@ -130,6 +134,34 @@ results = analyze_structure(path)
 results["domains"] = annotate_domains("1UBQ")
 print(render_markdown(results))
 ```
+## Batch mode
+
+Compare multiple structures at once instead of running them one by one:
+
+```bash
+python -m protein_toolkit.batch 1CRN 1UBQ --domains --csv comparison.csv
+```
+
+Real output from that command:
+
+| PDB ID | Chains | Residues | MW (Da) | pI | GRAVY | Instability | Helix % | Sheet % | Disulfides | Rg (Å) | Pfam domains |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1CRN | 1 | 46 | 4736.43 | 5.73 | 0.37 | 31.89 | 43.5 | 8.7 | 3 | 9.67 | PF00321 |
+| 1UBQ | 1 | 76 | 8564.74 | 6.56 | -0.489 | 36.06 | 23.7 | 34.2 | 0 | 12.04 | PF00240 |
+
+A bad or unavailable PDB ID doesn't stop the batch — that row just records
+the error while every other structure still gets analyzed and reported.
+
+## Structure comparison
+
+```bash
+python -m protein_toolkit.compare 1LYZ 2LZT
+python -m protein_toolkit.compare 1LYZ 2LZT --chain1 A --chain2 A
+```
+
+Residues are matched by sequence alignment rather than residue number, so
+two independently deposited entries with different numbering still compare
+correctly.
 
 ## Project structure
 
@@ -138,6 +170,7 @@ protein_toolkit/
 ├── fetch.py      # download structures from RCSB PDB
 ├── analyze.py    # sequence & structural analysis
 ├── domains.py    # PDB -> UniProt -> Pfam domain annotation
+├── batch.py      # analyze multiple structures, comparison table output
 ├── report.py     # markdown report rendering
 └── cli.py        # command-line interface
 examples/
@@ -147,7 +180,8 @@ tests/
 ├── 1a8o_fixture.cif          # small real structure (bundled, no network needed)
 ├── test_analyze.py           # unit tests (no network required)
 ├── test_domains.py           # domain annotation tests (mocked API responses)
-└── test_secondary_structure.py  # pydssp tests, incl. a real-data regression check
+├── test_secondary_structure.py  # pydssp tests, incl. a real-data regression check
+└── test_batch.py             # batch mode tests (mocked fetch/analyze)
 TROUBLESHOOTING.md             # real setup issues hit and how they were fixed
 ```
 
