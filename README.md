@@ -163,6 +163,15 @@ Residues are matched by sequence alignment rather than residue number, so
 two independently deposited entries with different numbering still compare
 correctly.
 
+Real output for two independently determined hen egg-white lysozyme structures:
+
+```
+$ python -m protein_toolkit.compare 1LYZ 2LZT
+RMSD: 0.714 Å
+Aligned residues: 129
+Sequence identity: 100.0%
+```
+
 ## Project structure
 
 ```
