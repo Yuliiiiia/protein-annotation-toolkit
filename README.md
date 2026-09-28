@@ -180,6 +180,7 @@ protein_toolkit/
 ├── analyze.py    # sequence & structural analysis
 ├── domains.py    # PDB -> UniProt -> Pfam domain annotation
 ├── batch.py      # analyze multiple structures, comparison table output
+├── compare.py    # sequence-aligned structural comparison (RMSD)
 ├── report.py     # markdown report rendering
 └── cli.py        # command-line interface
 examples/
@@ -190,7 +191,8 @@ tests/
 ├── test_analyze.py           # unit tests (no network required)
 ├── test_domains.py           # domain annotation tests (mocked API responses)
 ├── test_secondary_structure.py  # pydssp tests, incl. a real-data regression check
-└── test_batch.py             # batch mode tests (mocked fetch/analyze)
+├── test_batch.py             # batch mode tests (mocked fetch/analyze)
+└── test_compare.py           # RMSD tests, incl. a rigid-body-transform invariance check
 TROUBLESHOOTING.md             # real setup issues hit and how they were fixed
 ```
 
