@@ -35,6 +35,9 @@ composition (helix/sheet/coil), and are there bound ligands or cofactors?
 - **Radius of gyration** — a simple measure of structural compactness
 - **Markdown or JSON report output**
 - **Interactive 3D viewer** via a Jupyter notebook (py3Dmol)
+- - **Web frontend** — a local Flask app (`python -m protein_toolkit.webapp`)
+  with a browser-based PDB lookup form, interactive 3D viewer (3Dmol.js),
+  and the same report inline — no command line needed once it's running
 
 
 ## Installation
@@ -171,29 +174,52 @@ RMSD: 0.714 Å
 Aligned residues: 129
 Sequence identity: 100.0%
 ```
+## Web frontend
+
+For a point-and-click experience instead of the CLI:
+
+```bash
+pip install flask
+python -m protein_toolkit.webapp
+```
+
+Then open `http://127.0.0.1:5000` in a browser, type a PDB ID, and get the
+same report plus an interactive 3D structure viewer inline — no terminal
+output to read, no notebook to run.
+
+This is a local development server (Flask's built-in one, with the
+debug reloader on) meant for personal/local use, not for deploying on the
+open internet as-is.
+
 
 ## Project structure
 
 ```
 protein_toolkit/
-├── fetch.py      # download structures from RCSB PDB
-├── analyze.py    # sequence & structural analysis
-├── domains.py    # PDB -> UniProt -> Pfam domain annotation
-├── batch.py      # analyze multiple structures, comparison table output
-├── compare.py    # sequence-aligned structural comparison (RMSD)
-├── report.py     # markdown report rendering
-└── cli.py        # command-line interface
+├── fetch.py                      # download structures from RCSB PDB
+├── analyze.py                    # sequence & structural analysis
+├── domains.py                    # PDB -> UniProt -> Pfam domain annotation
+├── batch.py                      # analyze multiple structures, comparison table output
+├── compare.py                    # sequence-aligned structural comparison (RMSD)
+├── webapp.py                     # Flask web frontend (PDB form + 3D viewer + report)
+├── report.py                     # markdown report rendering
+└── cli.py                        # command-line interface
+protein_toolkit/templates/
+├── base.html                     # shared layout and styling
+├── index.html                    # PDB ID lookup form
+└── result.html                   # report + 3D viewer page
 examples/
-└── view_structure.ipynb   # interactive 3D viewer
+└── view_structure.ipynb          # interactive 3D viewer
 tests/
-├── make_synthetic_pdb.py     # builds a small offline test fixture
-├── 1a8o_fixture.cif          # small real structure (bundled, no network needed)
-├── test_analyze.py           # unit tests (no network required)
-├── test_domains.py           # domain annotation tests (mocked API responses)
-├── test_secondary_structure.py  # pydssp tests, incl. a real-data regression check
-├── test_batch.py             # batch mode tests (mocked fetch/analyze)
-└── test_compare.py           # RMSD tests, incl. a rigid-body-transform invariance check
-TROUBLESHOOTING.md             # real setup issues hit and how they were fixed
+├── make_synthetic_pdb.py         # builds a small offline test fixture
+├── 1a8o_fixture.cif              # small real structure (bundled, no network needed)
+├── test_analyze.py               # unit tests (no network required)
+├── test_domains.py               # domain annotation tests (mocked API responses)
+├── test_secondary_structure.py   # pydssp tests, incl. a real-data regression check
+├── test_batch.py                 # batch mode tests (mocked fetch/analyze)
+├── test_compare.py               # RMSD tests, incl. a rigid-body-transform invariance check
+└── test_webapp.py                # web frontend tests (mocked fetch/analyze)
+TROUBLESHOOTING.md                # real setup issues hit and how they were fixed
 ```
 
 ## Running tests
