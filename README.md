@@ -28,16 +28,20 @@ composition (helix/sheet/coil), and are there bound ligands or cofactors?
 - **Domain annotation** — maps each chain to UniProt (via EBI's SIFTS/PDBe
   mapping) and reports Pfam domain hits (via EBI InterPro) in PDB residue
   numbering
-  - **Batch mode** — analyze several structures in one run and get a
+- **Batch mode** — analyze several structures in one run and get a
   side-by-side comparison table (Markdown or CSV); one failing ID doesn't
   abort the rest of the batch
 - **Disulfide bond detection** — finds cysteine pairs within bonding distance
 - **Radius of gyration** — a simple measure of structural compactness
 - **Markdown or JSON report output**
 - **Interactive 3D viewer** via a Jupyter notebook (py3Dmol)
-- - **Web frontend** — a local Flask app (`python -m protein_toolkit.webapp`)
+- **Web frontend** — a local Flask app (`python -m protein_toolkit.webapp`)
   with a browser-based PDB lookup form, interactive 3D viewer (3Dmol.js),
   and the same report inline — no command line needed once it's running
+- **Mini research notebook** (`examples/disulfide_family_comparison.ipynb`) —
+  tests a real structural-biology hypothesis (extracellular proteins carry
+  more disulfide bonds than intracellular ones) against actual PDB
+  structures using the toolkit's own batch analysis
 
 
 ## Installation
@@ -209,7 +213,8 @@ protein_toolkit/templates/
 ├── index.html                    # PDB ID lookup form
 └── result.html                   # report + 3D viewer page
 examples/
-└── view_structure.ipynb          # interactive 3D viewer
+├── view_structure.ipynb                    # interactive 3D viewer
+└── disulfide_family_comparison.ipynb       # mini research study (see Features)
 tests/
 ├── make_synthetic_pdb.py         # builds a small offline test fixture
 ├── 1a8o_fixture.cif              # small real structure (bundled, no network needed)
@@ -236,10 +241,11 @@ against genuine coordinates, not synthetic ones), and mocked API responses
 real PDB download required for CI.
 
 ## Possible extensions
-
-- Structural alignment between two structures (RMSD via `Bio.PDB.Superimposer`)
-- Batch mode: analyze a list of PDB IDs and output a comparison table
-- Web frontend (Flask/FastAPI + py3Dmol.js) instead of notebook-only viewing
+- A systematic (not hand-picked) version of the disulfide-density study,
+  sampling structures via UniProt subcellular-location annotations at scale
+- CI/CD via GitHub Actions to run the test suite automatically on every push
+- Deploying the web frontend somewhere persistent (behind a real WSGI
+  server) instead of local-only use
 
 ## License
 
